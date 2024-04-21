@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <style>
+        body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+.container {
+    max-width: 600px;
+    margin: 20px auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #4caf50;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+#quiz {
+    margin-bottom: 20px;
+}
+
+.score {
+    text-align: center;
+}
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Quiz App</h1>
+        <div id="quiz"></div>
+        <button id="startButton" onclick="startQuiz()">Start Quiz</button>
+        <div id="score"></div>
+    </div>
+<script>
+    const apiUrl = 'https://opentdb.com/api.php?amount=10&type=multiple';
+
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let timeLimit = 15; // Time limit per question in seconds
+        let timerId;
+
+        async function fetchQuizData() {
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                if (data.response_code === 0) {
+                    questions = data.results;
+                    displayQuestion();
+                } else {
+                    console.error('Error: Unable to fetch quiz data');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function displayQuestion() {
+            const quizElement = document.getElementById('quiz');
+            const question = questions[currentQuestionIndex];
+            const options = shuffleOptions([...question.incorrect_answers, question.correct_answer]);
+            const html = `
+        <h2>${question.question}</h2>
+        <ul>
+            ${options.map(option => `<li onclick="checkAnswer('${option}')">${option}</li>`).join('')}
+        </ul>
+    `;
+            quizElement.innerHTML = html;
+
+            startTimer();
+        }
+
+        function checkAnswer(selectedAnswer) {
+            const question = questions[currentQuestionIndex];
+            if (selectedAnswer === question.correct_answer) {
+                score++;
+            }
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                displayQuestion();
+            } else {
+                endQuiz();
+            }
+        }
+
+        function endQuiz() {
+            clearInterval(timerId);
+            const quizElement = document.getElementById('quiz');
+            quizElement.innerHTML = `<h2>Quiz Complete!</h2>`;
+            const scoreElement = document.getElementById('score');
+            scoreElement.innerHTML = `<p>Your score: ${score}/${questions.length}</p>`;
+        }
+
+        function startTimer() {
+            let timeLeft = timeLimit;
+            const timerElement = document.getElementById('timer');
+            timerId = setInterval(() => {
+                timeLeft--;
+                timerElement.textContent = `Time left: ${timeLeft} seconds`;
+                if (timeLeft === 0) {
+                    clearInterval(timerId);
+                    currentQuestionIndex++;
+                    if (currentQuestionIndex < questions.length) {
+                        displayQuestion();
+                    } else {
+                        endQuiz();
+                    }
+                }
+            }, 1000);
+        }
+
+        function shuffleOptions(options) {
+            for (let i = options.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [options[i], options[j]] = [options[j], options[i]];
+            }
+            return options;
+        }
+
+        function startQuiz() {
+            fetchQuizData();
+            document.getElementById('startButton').style.display = 'none';
+        }
+
+</script>
+</body>
+
+</html>
